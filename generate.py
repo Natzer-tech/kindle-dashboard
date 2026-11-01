@@ -43,44 +43,4 @@ def draw_icon(draw, x, y, code):
     def cloud(cx, cy):
         for dx, dy, r in [(12, 18, 8), (21, 13, 10), (30, 18, 8)]:
             draw.ellipse([(cx+dx-r, cy+dy-r), (cx+dx+r, cy+dy+r)], fill=255, outline=0, width=2)
-        draw.rectangle([(cx+12, cy+16), (cx+30, cy+26)], fill=255)
-        draw.line([(cx+10, cy+26), (cx+32, cy+26)], fill=0, width=2)
-
-    if code in (0, 1):
-        for dx, dy in [(15, 0), (0, 15), (11, 11), (-11, 11)]:
-            draw.line([(x+20-dx, y+20-dy), (x+20+dx, y+20+dy)], fill=0, width=2)
-        draw.ellipse([(x+9, y+9), (x+31, y+31)], fill=255)
-        draw.ellipse([(x+12, y+12), (x+28, y+28)], fill=255, outline=0, width=2)
-    elif code == 2:
-        draw.ellipse([(x+20, y+4), (x+34, y+18)], fill=255, outline=0, width=2)
-        cloud(x, y+6)
-    elif code in (45, 48):
-        for dy in (12, 20, 28):
-            draw.line([(x+6, y+dy), (x+36, y+dy)], fill=0, width=2)
-    else:
-        cloud(x, y)
-        if code in (51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82):
-            for rx in (13, 21, 29):
-                draw.line([(x+rx, y+30), (x+rx-3, y+38)], fill=0, width=2)
-        elif code in (71, 73, 75, 77, 85, 86):
-            for sx in (13, 21, 29):
-                draw.line([(x+sx-3, y+34), (x+sx+3, y+34)], fill=0, width=2)
-                draw.line([(x+sx, y+31), (x+sx, y+37)], fill=0, width=2)
-        elif code in (95, 96, 99):
-            draw.polygon([(x+22, y+27), (x+15, y+35), (x+20, y+35), (x+17, y+42), (x+27, y+32), (x+21, y+32)], fill=0)
-
-def get_events(cal, target_date):
-    if not cal:
-        return []
-    start_dt = datetime.combine(target_date, time.min).replace(tzinfo=TZ)
-    end_dt = datetime.combine(target_date, time.max).replace(tzinfo=TZ)
-    parsed = []
-    for ev in recurring_ical_events.of(cal).between(start_dt, end_dt):
-        summary = str(ev.get("SUMMARY", "Ohne Titel")).strip()
-        dtstart = ev.get("DTSTART").dt
-        dtend = ev.get("DTEND").dt if ev.get("DTEND") else None
-        if not isinstance(dtstart, datetime):
-            parsed.append((-1, "Ganztägig", summary))
-        else:
-            s_loc = dtstart.astimezone(TZ)
-            t_str = f"{s_loc.strftime('%H:%M')} - {dtend.astimezone(TZ).strftime('%H:%M')}" if isinstance(dtend, datetime) else 
+        draw.rectangle([(cx+12, cy+16), (cx+30, 
