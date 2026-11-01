@@ -111,18 +111,19 @@ draw = ImageDraw.Draw(img)
 BAR_HEIGHT = 42
 draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
-# Gleicher Abstand oben und unten
-GAP = 14
+# Gleicher Abstand oben und unten zur Tagesanzeige
+GAP = 10
 TOP = BAR_HEIGHT + GAP
 
 # 1. Header
 date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
 draw.text((30, TOP), date_str, fill=0, font=f_large)
-draw.line([(30, TOP + 46 + GAP), (WIDTH - 30, TOP + 46 + GAP)], fill=180, width=2)
+# Linie mit gleichem Abstand darunter
+draw.line([(30, TOP + 38 + GAP), (WIDTH - 30, TOP + 38 + GAP)], fill=180, width=2)
 
 # 2. Wetter
 print("2/4 Lade Wetterdaten...")
-weather_start = TOP + 46 + GAP + 16
+weather_start = TOP + 38 + GAP + 14
 draw.text((30, weather_start), f"WETTER HEUTE – {LOCATION_NAME.upper()}", fill=0, font=f_medium)
 upd_str = f"Stand: {now.strftime('%H:%M')} Uhr"
 draw.text((WIDTH - 30 - draw.textlength(upd_str, font=f_small), weather_start + 5), upd_str, fill=90, font=f_small)
