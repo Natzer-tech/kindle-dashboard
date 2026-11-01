@@ -36,6 +36,8 @@ f_temp = ImageFont.truetype(font_b, 34)
 f_medium = ImageFont.truetype(font_b, 20)
 f_regular = ImageFont.truetype(font_p, 18)
 f_small = ImageFont.truetype(font_p, 14)
+f_quote = ImageFont.truetype(font_p, 16)
+f_quote_author = ImageFont.truetype(font_p, 13)
 
 def draw_icon(draw, x, y, code):
     def cloud(cx, cy):
@@ -81,86 +83,4 @@ def get_events(cal, target_date):
             parsed.append((-1, "Ganztägig", summary))
         else:
             s_loc = dtstart.astimezone(TZ)
-            t_str = f"{s_loc.strftime('%H:%M')} - {dtend.astimezone(TZ).strftime('%H:%M')}" if isinstance(dtend, datetime) else f"{s_loc.strftime('%H:%M')} Uhr"
-            parsed.append((s_loc.hour * 60 + s_loc.minute, t_str, summary))
-    return sorted(parsed, key=lambda x: (x[0], x[2]))
-
-# --- Bild erstellen ---
-now = datetime.now(TZ)
-img = Image.new("L", (WIDTH, HEIGHT), 255)
-draw = ImageDraw.Draw(img)
-
-# Mehr Platz oben (Statusleiste)
-TOP = 70
-
-# 1. Header
-date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
-draw.text((30, TOP), date_str, fill=0, font=f_large)
-draw.line([(30, TOP + 46), (WIDTH - 30, TOP + 46)], fill=180, width=2)
-
-# 2. Wetter
-print("2/4 Lade Wetterdaten...")
-draw.text((30, TOP + 62), f"WETTER HEUTE – {LOCATION_NAME.upper()}", fill=0, font=f_medium)
-upd_str = f"Stand: {now.strftime('%H:%M')} Uhr"
-draw.text((WIDTH - 30 - draw.textlength(upd_str, font=f_small), TOP + 67), upd_str, fill=90, font=f_small)
-
-url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&hourly=temperature_2m,precipitation_probability,weather_code&timezone={TIMEZONE_STR}&forecast_days=1"
-try:
-    hourly = requests.get(url, timeout=12).json().get("hourly", {})
-    times = hourly.get("time", [])
-except:
-    hourly = {}
-    times = []
-
-for i, (label, t_target) in enumerate([("Morgens (08:00)", "08:00"), ("Mittags (13:00)", "13:00"), ("Abends (19:00)", "19:00")]):
-    x = 30 + i * ((WIDTH - 60) // 3)
-    idx = next((k for k, t in enumerate(times) if t.endswith(t_target)), 0)
-    code = hourly.get("weather_code", [3])[idx] if times else 3
-    temp = f"{round(hourly.get('temperature_2m', [0])[idx])}°C" if times else "–"
-    rain = f"{hourly.get('precipitation_probability', [0])[idx]}% Regen" if times else ""
-    draw.text((x, TOP + 100), label, fill=90, font=f_small)
-    draw_icon(draw, x, TOP + 124, code)
-    draw.text((x + 48, TOP + 126), temp, fill=0, font=f_temp)
-    draw.text((x, TOP + 172), WMO_CODES.get(code, "Bedeckt"), fill=0, font=f_regular)
-    draw.text((x, TOP + 196), rain, fill=90, font=f_small)
-
-draw.line([(30, TOP + 229), (WIDTH - 30, TOP + 229)], fill=180, width=2)
-
-# 3. Kalender
-print("3/4 Lade Kalenderdaten...")
-cal = None
-if ICAL_URL:
-    try:
-        cal = Calendar.from_ical(requests.get(ICAL_URL, timeout=15).text)
-    except:
-        cal = None
-
-tomorrow = now.date() + timedelta(days=1)
-sections = [
-    ("TERMINE HEUTE", get_events(cal, now.date())),
-    (f"TERMINE MORGEN ({WOCHENTAGE[tomorrow.weekday()]}, {tomorrow.day}.{tomorrow.month:02d}.)", get_events(cal, tomorrow))
-]
-
-y = TOP + 249
-for s_idx, (title, ev_list) in enumerate(sections):
-    draw.text((30, y), title, fill=0, font=f_medium)
-    y += 36
-    if not ev_list:
-        draw.text((30, y), "Keine Termine eingetragen.", fill=90, font=f_regular)
-        y += 36
-    for _, t_str, summary in ev_list[:7]:
-        if y > HEIGHT - 45:
-            break
-        draw.text((30, y), t_str, fill=0, font=f_regular)
-        while len(summary) > 3 and draw.textlength(summary, font=f_regular) > (WIDTH - 225):
-            summary = summary[:-2] + "…"
-        draw.text((195, y), summary, fill=0, font=f_regular)
-        y += 36
-        draw.line([(30, y - 7), (WIDTH - 30, y - 7)], fill=230, width=1)
-    if s_idx == 0:
-        y += 12
-        draw.line([(30, y), (WIDTH - 30, y)], fill=180, width=2)
-        y += 20
-
-img.save("dashboard.png", "PNG")
-print("4/4 Fertig: dashboard.png erfolgreich gespeichert!")
+            t_str = f"{s_loc.strftime('%H:%M')} - {dtend.astimezone(TZ).strftime('%H:%M')}" if isinstance(dtend, datetime) else 
