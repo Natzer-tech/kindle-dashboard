@@ -84,84 +84,145 @@ def get_events_for_day(cal, target_date):
             parsed.append((-1, "Ganztägig", summary))
         else:
             s_loc = dtstart.astimezone(TZ)
-            if isinstance(dtend, datetime):
-                t_str = f"{s_loc.strftime('%H:%M')} - {dtend.astimezone(TZ).strftime('%H:%M')}"
-            else:
-                t_str = f"{s_loc.strftime('%H:%M')} Uhr"
+            t_str = f"{s_loc.strftime('%H:%M')} - {dtend.astimezone(TZ).strftime('%H:%M')}" if isinstance(dtend, datetime) else f"{s_loc.strftime('%H:%M')} Uhr"
             parsed.append((s_loc.hour * 60 + s_loc.minute, t_str, summary))
     return sorted(parsed, key=lambda x: (x[0], x[2]))
 
 def get_events_for_range(cal, start_date, end_date):
-    if not cal:
-        return []
     all_events = []
     cur = start_date
     while cur <= end_date:
-        day_prefix = f"{WOCHENTAGE_KURZ[cur.weekday()]}, {cur.day:02d}.{cur.month:02d}."
+        prefix = f"{WOCHENTAGE_KURZ[cur.weekday()]}, {cur.day:02d}.{cur.month:02d}."
         for sort_k, t_str, summary in get_events_for_day(cal, cur):
-            all_events.append((sort_k, f"{day_prefix} | {t_str}", summary))
+            all_events.append((sort_k, f"{prefix} | {t_str}", summary))
         cur += timedelta(days=1)
     return all_events
 
 def get_daily_quote():
     try:
-        r = requests.get("https://api.zitat-service.de/v1/quote?language=de", timeout=10)
-        data = r.json()
-        quote = data.get("quote", "").strip()
-        author = data.get("authorName", "").strip()
-        if quote:
-            return quote, author
+        data = requests.get("https://api.zitat-service.de/v1/quote?language=de", timeout=10).json()
+        q, a = data.get("quote", "").strip(), data.get("authorName", "").strip()
+        if q:
+            return q, a
     except Exception:
         pass
     return "Der beste Weg, die Zukunft vorherzusagen, ist, sie zu gestalten.", "Peter Drucker"
 
-def wrap_text(draw_obj, text, font, max_width):
-    words = text.split()
-    lines = []
-    current = ""
-    for word in words:
-        test = current + (" " if current else "") + word
-        if draw_obj.textlength(test, font=font) <= max_width:
-            current = test
+def wrap_text(draw_obj, text, font, max_w):
+    lines, cur = [], ""
+    for w in text.split():
+        test = f"{cur} {w}".strip()
+        if draw_obj.textlength(test, font=font) <= max_w:
+            cur = test
         else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
+            if cur:
+                lines.append(cur)
+            cur = w
+    if cur:
+        lines.append(cur)
     return lines
 
-# --- Bild erstellen ---
 now = datetime.now(TZ)
 img = Image.new("L", (WIDTH, HEIGHT), 255)
 draw = ImageDraw.Draw(img)
 
-# Schwarzer Balken oben (verdeckt den Bereich der Kindle-Statusleiste)
-BAR_HEIGHT = 42
-draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
-
-GAP = 10
+# Schwarzer Balken oben
+BAR_HEIGHT, GAP = 42, 10
 TOP = BAR_HEIGHT + GAP
+draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
 # 1. Header
 date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
 draw.text((30, TOP), date_str, fill=0, font=f_large)
-draw.line([(30, TOP + 38 + GAP), (WIDTH - 30, TOP + 38 + GAP)], fill=180, width=2)
+draw.line([(30, TOP + 48), (WIDTH - 30, TOP + 48)], fill=180, width=2)
 
 # 2. Wetter
 print("2/4 Lade Wetterdaten...")
-weather_start = TOP + 38 + GAP + 14
-draw.text((30, weather_start), f"WETTER HEUTE – {LOCATION_NAME.upper()}", fill=0, font=f_medium)
+w_start = TOP + 62
+draw.text((30, w_start), f"WETTER HEUTE – {LOCATION_NAME.upper()}", fill=0, font=f_medium)
 upd_str = f"Stand: {now.strftime('%H:%M')} Uhr"
-draw.text((WIDTH - 30 - draw.textlength(upd_str, font=f_small), weather_start + 5), upd_str, fill=90, font=f_small)
+draw.text((WIDTH - 30 - draw.textlength(upd_str, font=f_small), w_start + 5), upd_str, fill=90, font=f_small)
 
 url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&hourly=temperature_2m,precipitation_probability,weather_code&timezone={TIMEZONE_STR}&forecast_days=1"
 try:
     hourly = requests.get(url, timeout=12).json().get("hourly", {})
     times = hourly.get("time", [])
 except Exception:
-    hourly = {}
-    times = []
+    hourly, times = {}, []
 
 for i, (label, t_target) in enumerate([("Morgens (08:00)", "08:00"), ("Mittags (13:00)", "13:00"), ("Abends (19:00)", "19:00")]):
-    x = 30 + i * ((WIDTH - 6
+    x = 30 + i * 232
+    idx = next((k for k, t in enumerate(times) if t.endswith(t_target)), 0)
+    code = hourly.get("weather_code", [3])[idx] if times else 3
+    temp = f"{round(hourly.get('temperature_2m', [0])[idx])}°C" if times else "–"
+    rain = f"{hourly.get('precipitation_probability', [0])[idx]}% Regen" if times else ""
+    draw.text((x, w_start + 38), label, fill=90, font=f_small)
+    draw_icon(draw, x, w_start + 62, code)
+    draw.text((x + 48, w_start + 64), temp, fill=0, font=f_temp)
+    draw.text((x, w_start + 110), WMO_CODES.get(code, "Bedeckt"), fill=0, font=f_regular)
+    draw.text((x, w_start + 134), rain, fill=90, font=f_small)
+
+draw.line([(30, w_start + 167), (WIDTH - 30, w_start + 167)], fill=180, width=2)
+
+# 3. Zitat vorab berechnen (dynamisch am unteren Rand verankert)
+quote, author = get_daily_quote()
+quote_lines = wrap_text(draw, f"„{quote}“", f_quote, WIDTH - 80)[:3]
+quote_block_h = len(quote_lines) * 26 + (24 if author else 0)
+quote_y = HEIGHT - 18 - quote_block_h
+quote_line_y = quote_y - 14
+
+# 4. Kalender
+print("3/4 Lade Kalenderdaten...")
+cal = None
+if ICAL_URL:
+    try:
+        cal = Calendar.from_ical(requests.get(ICAL_URL, timeout=15).text)
+    except Exception:
+        cal = None
+
+today_date = now.date()
+start_r = today_date + timedelta(days=1)
+if today_date.weekday() == 6:
+    end_r = today_date + timedelta(days=7)
+    r_title = f"TERMINE FOLGENDE WOCHE ({start_r.day:02d}.{start_r.month:02d}. – {end_r.day:02d}.{end_r.month:02d}.)"
+else:
+    end_r = today_date + timedelta(days=6 - today_date.weekday())
+    r_title = f"TERMINE RESTLICHE WOCHE (bis So, {end_r.day:02d}.{end_r.month:02d}.)"
+
+sections = [
+    ("TERMINE HEUTE", get_events_for_day(cal, today_date), 195, 6),
+    (r_title, get_events_for_range(cal, start_r, end_r), 290, 10)
+]
+
+y = w_start + 187
+for s_idx, (title, ev_list, text_x, max_items) in enumerate(sections):
+    draw.text((30, y), title, fill=0, font=f_medium)
+    y += 36
+    if not ev_list:
+        draw.text((30, y), "Keine Termine eingetragen.", fill=90, font=f_regular)
+        y += 36
+    for _, t_str, summary in ev_list[:max_items]:
+        if y > quote_line_y - 36:
+            break
+        draw.text((30, y), t_str, fill=0, font=f_regular)
+        max_w = WIDTH - text_x - 30
+        while len(summary) > 3 and draw.textlength(summary, font=f_regular) > max_w:
+            summary = summary[:-2] + "…"
+        draw.text((text_x, y), summary, fill=0, font=f_regular)
+        y += 36
+        draw.line([(30, y - 7), (WIDTH - 30, y - 7)], fill=230, width=1)
+    if s_idx == 0:
+        y += 12
+        draw.line([(30, y), (WIDTH - 30, y)], fill=180, width=2)
+        y += 20
+
+# 5. Zitat unten zeichnen
+draw.line([(30, quote_line_y), (WIDTH - 30, quote_line_y)], fill=180, width=1)
+for line in quote_lines:
+    draw.text((40, quote_y), line, fill=0, font=f_quote)
+    quote_y += 26
+if author:
+    draw.text((40, quote_y + 2), f"— {author}", fill=80, font=f_quote_author)
+
+img.save("dashboard.png", "PNG")
+print("4/4 Fertig!")
