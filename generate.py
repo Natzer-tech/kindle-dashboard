@@ -33,42 +33,44 @@ WMO_CODES = {
 font_p = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 font_b = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 f_large = ImageFont.truetype(font_b, 30)
-f_temp = ImageFont.truetype(font_b, 34)
+f_temp = ImageFont.truetype(font_b, 44)
 f_medium = ImageFont.truetype(font_b, 20)
+f_w_desc = ImageFont.truetype(font_p, 20)
 f_regular = ImageFont.truetype(font_p, 18)
+f_w_small = ImageFont.truetype(font_p, 16)
 f_small = ImageFont.truetype(font_p, 14)
 f_quote = ImageFont.truetype(font_p, 20)
 f_quote_author = ImageFont.truetype(font_p, 16)
 
 def draw_icon(draw, x, y, code):
     def cloud(cx, cy):
-        for dx, dy, r in [(12, 18, 8), (21, 13, 10), (30, 18, 8)]:
-            draw.ellipse([(cx+dx-r, cy+dy-r), (cx+dx+r, cy+dy+r)], fill=255, outline=0, width=2)
-        draw.rectangle([(cx+12, cy+16), (cx+30, cy+26)], fill=255)
-        draw.line([(cx+10, cy+26), (cx+32, cy+26)], fill=0, width=2)
+        for dx, dy, r in [(16, 24, 11), (28, 17, 14), (41, 24, 11)]:
+            draw.ellipse([(cx+dx-r, cy+dy-r), (cx+dx+r, cy+dy+r)], fill=255, outline=0, width=3)
+        draw.rectangle([(cx+16, cy+21), (cx+41, cy+35)], fill=255)
+        draw.line([(cx+13, cy+35), (cx+44, cy+35)], fill=0, width=3)
 
     if code in (0, 1):
-        for dx, dy in [(15, 0), (0, 15), (11, 11), (-11, 11)]:
-            draw.line([(x+20-dx, y+20-dy), (x+20+dx, y+20+dy)], fill=0, width=2)
-        draw.ellipse([(x+9, y+9), (x+31, y+31)], fill=255)
-        draw.ellipse([(x+12, y+12), (x+28, y+28)], fill=255, outline=0, width=2)
+        for dx, dy in [(21, 0), (0, 21), (15, 15), (-15, 15)]:
+            draw.line([(x+27-dx, y+27-dy), (x+27+dx, y+27+dy)], fill=0, width=3)
+        draw.ellipse([(x+12, y+12), (x+42, y+42)], fill=255)
+        draw.ellipse([(x+16, y+16), (x+38, y+38)], fill=255, outline=0, width=3)
     elif code == 2:
-        draw.ellipse([(x+20, y+4), (x+34, y+18)], fill=255, outline=0, width=2)
-        cloud(x, y+6)
+        draw.ellipse([(x+27, y+5), (x+46, y+24)], fill=255, outline=0, width=3)
+        cloud(x, y+8)
     elif code in (45, 48):
-        for dy in (12, 20, 28):
-            draw.line([(x+6, y+dy), (x+36, y+dy)], fill=0, width=2)
+        for dy in (16, 27, 38):
+            draw.line([(x+8, y+dy), (x+48, y+dy)], fill=0, width=3)
     else:
         cloud(x, y)
         if code in (51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82):
-            for rx in (13, 21, 29):
-                draw.line([(x+rx, y+30), (x+rx-3, y+38)], fill=0, width=2)
+            for rx in (18, 28, 39):
+                draw.line([(x+rx, y+40), (x+rx-4, y+51)], fill=0, width=3)
         elif code in (71, 73, 75, 77, 85, 86):
-            for sx in (13, 21, 29):
-                draw.line([(x+sx-3, y+34), (x+sx+3, y+34)], fill=0, width=2)
-                draw.line([(x+sx, y+31), (x+sx, y+37)], fill=0, width=2)
+            for sx in (18, 28, 39):
+                draw.line([(x+sx-4, y+46), (x+sx+4, y+46)], fill=0, width=2)
+                draw.line([(x+sx, y+42), (x+sx, y+50)], fill=0, width=2)
         elif code in (95, 96, 99):
-            draw.polygon([(x+22, y+27), (x+15, y+35), (x+20, y+35), (x+17, y+42), (x+27, y+32), (x+21, y+32)], fill=0)
+            draw.polygon([(x+30, y+36), (x+20, y+47), (x+27, y+47), (x+23, y+56), (x+36, y+43), (x+28, y+43)], fill=0)
 
 def get_events_for_day(cal, target_date):
     if not cal:
@@ -136,7 +138,7 @@ date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {no
 draw.text((30, TOP), date_str, fill=0, font=f_large)
 draw.line([(30, TOP + 48), (WIDTH - 30, TOP + 48)], fill=180, width=2)
 
-# 2. Wetter
+# 2. Wetter (Vergrößert & rechtsbündig bis zum Rand verteilt)
 print("2/4 Lade Wetterdaten...")
 w_start = TOP + 62
 draw.text((30, w_start), f"WETTER HEUTE – {LOCATION_NAME.upper()}", fill=0, font=f_medium)
@@ -150,19 +152,35 @@ try:
 except Exception:
     hourly, times = {}, []
 
-for i, (label, t_target) in enumerate([("Morgens (08:00)", "08:00"), ("Mittags (13:00)", "13:00"), ("Abends (19:00)", "19:00")]):
-    x = 30 + i * 232
+slots_data = []
+for label, t_target in [("Morgens (08:00)", "08:00"), ("Mittags (13:00)", "13:00"), ("Abends (19:00)", "19:00")]:
     idx = next((k for k, t in enumerate(times) if t.endswith(t_target)), 0)
     code = hourly.get("weather_code", [3])[idx] if times else 3
     temp = f"{round(hourly.get('temperature_2m', [0])[idx])}°C" if times else "–"
     rain = f"{hourly.get('precipitation_probability', [0])[idx]}% Regen" if times else ""
-    draw.text((x, w_start + 38), label, fill=90, font=f_small)
-    draw_icon(draw, x, w_start + 62, code)
-    draw.text((x + 48, w_start + 64), temp, fill=0, font=f_temp)
-    draw.text((x, w_start + 110), WMO_CODES.get(code, "Bedeckt"), fill=0, font=f_regular)
-    draw.text((x, w_start + 134), rain, fill=90, font=f_small)
+    desc = WMO_CODES.get(code, "Bedeckt")
+    col_w = max(
+        62 + draw.textlength(temp, font=f_temp),
+        draw.textlength(desc, font=f_w_desc),
+        draw.textlength(label, font=f_w_small),
+        draw.textlength(rain, font=f_w_small)
+    )
+    slots_data.append((label, code, temp, desc, rain, col_w))
 
-draw.line([(30, w_start + 167), (WIDTH - 30, w_start + 167)], fill=180, width=2)
+x_positions = [
+    30,
+    int((WIDTH - slots_data[1][5]) // 2),
+    int(WIDTH - 30 - slots_data[2][5])
+]
+
+for x, (label, code, temp, desc, rain, _) in zip(x_positions, slots_data):
+    draw.text((x, w_start + 38), label, fill=90, font=f_w_small)
+    draw_icon(draw, x, w_start + 64, code)
+    draw.text((x + 62, w_start + 66), temp, fill=0, font=f_temp)
+    draw.text((x, w_start + 126), desc, fill=0, font=f_w_desc)
+    draw.text((x, w_start + 154), rain, fill=90, font=f_w_small)
+
+draw.line([(30, w_start + 188), (WIDTH - 30, w_start + 188)], fill=180, width=2)
 
 # 3. Zitat vorab berechnen (dynamisch am unteren Rand verankert)
 quote, author = get_daily_quote()
@@ -194,7 +212,7 @@ sections = [
     (r_title, get_events_for_range(cal, start_r, end_r), 290, 10)
 ]
 
-y = w_start + 187
+y = w_start + 208
 for s_idx, (title, ev_list, text_x, max_items) in enumerate(sections):
     draw.text((30, y), title, fill=0, font=f_medium)
     y += 36
