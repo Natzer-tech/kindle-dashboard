@@ -17,6 +17,7 @@ ICAL_URL = os.getenv("ICAL_URL", "").strip().replace("webcal://", "https://")
 
 WIDTH, HEIGHT = 758, 1024
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+WOCHENTAGE_KURZ = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
 MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
 
 WMO_CODES = {
@@ -69,7 +70,7 @@ def draw_icon(draw, x, y, code):
         elif code in (95, 96, 99):
             draw.polygon([(x+22, y+27), (x+15, y+35), (x+20, y+35), (x+17, y+42), (x+27, y+32), (x+21, y+32)], fill=0)
 
-def get_events(cal, target_date):
+def get_events_for_day(cal, target_date):
     if not cal:
         return []
     start_dt = datetime.combine(target_date, time.min).replace(tzinfo=TZ)
@@ -89,6 +90,18 @@ def get_events(cal, target_date):
                 t_str = f"{s_loc.strftime('%H:%M')} Uhr"
             parsed.append((s_loc.hour * 60 + s_loc.minute, t_str, summary))
     return sorted(parsed, key=lambda x: (x[0], x[2]))
+
+def get_events_for_range(cal, start_date, end_date):
+    if not cal:
+        return []
+    all_events = []
+    cur = start_date
+    while cur <= end_date:
+        day_prefix = f"{WOCHENTAGE_KURZ[cur.weekday()]}, {cur.day:02d}.{cur.month:02d}."
+        for sort_k, t_str, summary in get_events_for_day(cal, cur):
+            all_events.append((sort_k, f"{day_prefix} | {t_str}", summary))
+        cur += timedelta(days=1)
+    return all_events
 
 def get_daily_quote():
     try:
@@ -151,66 +164,4 @@ except Exception:
     times = []
 
 for i, (label, t_target) in enumerate([("Morgens (08:00)", "08:00"), ("Mittags (13:00)", "13:00"), ("Abends (19:00)", "19:00")]):
-    x = 30 + i * ((WIDTH - 60) // 3)
-    idx = next((k for k, t in enumerate(times) if t.endswith(t_target)), 0)
-    code = hourly.get("weather_code", [3])[idx] if times else 3
-    temp = f"{round(hourly.get('temperature_2m', [0])[idx])}°C" if times else "–"
-    rain = f"{hourly.get('precipitation_probability', [0])[idx]}% Regen" if times else ""
-    draw.text((x, weather_start + 38), label, fill=90, font=f_small)
-    draw_icon(draw, x, weather_start + 62, code)
-    draw.text((x + 48, weather_start + 64), temp, fill=0, font=f_temp)
-    draw.text((x, weather_start + 110), WMO_CODES.get(code, "Bedeckt"), fill=0, font=f_regular)
-    draw.text((x, weather_start + 134), rain, fill=90, font=f_small)
-
-draw.line([(30, weather_start + 167), (WIDTH - 30, weather_start + 167)], fill=180, width=2)
-
-# 3. Kalender
-print("3/4 Lade Kalenderdaten...")
-cal = None
-if ICAL_URL:
-    try:
-        cal = Calendar.from_ical(requests.get(ICAL_URL, timeout=15).text)
-    except Exception:
-        cal = None
-
-tomorrow = now.date() + timedelta(days=1)
-sections = [
-    ("TERMINE HEUTE", get_events(cal, now.date())),
-    (f"TERMINE MORGEN ({WOCHENTAGE[tomorrow.weekday()]}, {tomorrow.day}.{tomorrow.month:02d}.)", get_events(cal, tomorrow))
-]
-
-y = weather_start + 187
-for s_idx, (title, ev_list) in enumerate(sections):
-    draw.text((30, y), title, fill=0, font=f_medium)
-    y += 36
-    if not ev_list:
-        draw.text((30, y), "Keine Termine eingetragen.", fill=90, font=f_regular)
-        y += 36
-    for _, t_str, summary in ev_list[:6]:
-        if y > HEIGHT - 160:
-            break
-        draw.text((30, y), t_str, fill=0, font=f_regular)
-        while len(summary) > 3 and draw.textlength(summary, font=f_regular) > (WIDTH - 225):
-            summary = summary[:-2] + "…"
-        draw.text((195, y), summary, fill=0, font=f_regular)
-        y += 36
-        draw.line([(30, y - 7), (WIDTH - 30, y - 7)], fill=230, width=1)
-    if s_idx == 0:
-        y += 12
-        draw.line([(30, y), (WIDTH - 30, y)], fill=180, width=2)
-        y += 20
-
-# 4. Zitat unten
-print("4/4 Lade Zitat und speichere Bild...")
-quote, author = get_daily_quote()
-quote_lines = wrap_text(draw, f"„{quote}“", f_quote, WIDTH - 80)
-quote_y = HEIGHT - 130
-draw.line([(30, quote_y - 15), (WIDTH - 30, quote_y - 15)], fill=180, width=1)
-for line in quote_lines[:3]:
-    draw.text((40, quote_y), line, fill=0, font=f_quote)
-    quote_y += 26
-if author:
-    draw.text((40, quote_y + 4), f"— {author}", fill=80, font=f_quote_author)
-
-img.save("dashboard.png", "PNG")
-print("Fertig: dashboard.png erfolgreich gespeichert!")
+    x = 30 + i * ((WIDTH - 6
