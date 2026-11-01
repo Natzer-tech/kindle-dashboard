@@ -111,8 +111,8 @@ draw = ImageDraw.Draw(img)
 BAR_HEIGHT = 42
 draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
-# Tagesanzeige direkt unter dem Balken (Lücke geschlossen)
-TOP = BAR_HEIGHT + 8
+# Tagesanzeige direkt darunter (minimaler Abstand)
+TOP = BAR_HEIGHT + 4
 
 # 1. Header
 date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
