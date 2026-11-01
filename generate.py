@@ -36,8 +36,8 @@ f_temp = ImageFont.truetype(font_b, 34)
 f_medium = ImageFont.truetype(font_b, 20)
 f_regular = ImageFont.truetype(font_p, 18)
 f_small = ImageFont.truetype(font_p, 14)
-f_quote = ImageFont.truetype(font_p, 16)
-f_quote_author = ImageFont.truetype(font_p, 13)
+f_quote = ImageFont.truetype(font_p, 18)
+f_quote_author = ImageFont.truetype(font_p, 15)
 
 def draw_icon(draw, x, y, code):
     def cloud(cx, cy):
@@ -107,8 +107,8 @@ now = datetime.now(TZ)
 img = Image.new("L", (WIDTH, HEIGHT), 255)
 draw = ImageDraw.Draw(img)
 
-# Schwarzer Balken oben
-BAR_HEIGHT = 24
+# Schwarzer Balken oben (10% größer)
+BAR_HEIGHT = 27
 draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
 # Mehr Platz oben
@@ -170,7 +170,7 @@ for s_idx, (title, ev_list) in enumerate(sections):
         draw.text((30, y), "Keine Termine eingetragen.", fill=90, font=f_regular)
         y += 36
     for _, t_str, summary in ev_list[:6]:
-        if y > HEIGHT - 140:
+        if y > HEIGHT - 150:
             break
         draw.text((30, y), t_str, fill=0, font=f_regular)
         while len(summary) > 3 and draw.textlength(summary, font=f_regular) > (WIDTH - 225):
@@ -204,11 +204,11 @@ def wrap_text(text, font, max_width):
     return lines
 
 quote_lines = wrap_text(f"„{quote}“", f_quote, WIDTH - 80)
-quote_y = HEIGHT - 110
+quote_y = HEIGHT - 120
 draw.line([(30, quote_y - 15), (WIDTH - 30, quote_y - 15)], fill=180, width=1)
 for line in quote_lines[:3]:
     draw.text((40, quote_y), line, fill=0, font=f_quote)
-    quote_y += 22
+    quote_y += 24
 if author:
     draw.text((40, quote_y + 4), f"— {author}", fill=80, font=f_quote_author)
 
