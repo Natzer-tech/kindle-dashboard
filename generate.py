@@ -36,8 +36,8 @@ f_temp = ImageFont.truetype(font_b, 34)
 f_medium = ImageFont.truetype(font_b, 20)
 f_regular = ImageFont.truetype(font_p, 18)
 f_small = ImageFont.truetype(font_p, 14)
-f_quote = ImageFont.truetype(font_p, 18)
-f_quote_author = ImageFont.truetype(font_p, 15)
+f_quote = ImageFont.truetype(font_p, 20)
+f_quote_author = ImageFont.truetype(font_p, 16)
 
 def draw_icon(draw, x, y, code):
     def cloud(cx, cy):
@@ -118,7 +118,6 @@ TOP = BAR_HEIGHT + GAP
 # 1. Header
 date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
 draw.text((30, TOP), date_str, fill=0, font=f_large)
-# Linie mit gleichem Abstand darunter
 draw.line([(30, TOP + 38 + GAP), (WIDTH - 30, TOP + 38 + GAP)], fill=180, width=2)
 
 # 2. Wetter
@@ -173,47 +172,9 @@ for s_idx, (title, ev_list) in enumerate(sections):
         draw.text((30, y), "Keine Termine eingetragen.", fill=90, font=f_regular)
         y += 36
     for _, t_str, summary in ev_list[:6]:
-        if y > HEIGHT - 150:
+        if y > HEIGHT - 160:
             break
         draw.text((30, y), t_str, fill=0, font=f_regular)
         while len(summary) > 3 and draw.textlength(summary, font=f_regular) > (WIDTH - 225):
             summary = summary[:-2] + "…"
         draw.text((195, y), summary, fill=0, font=f_regular)
-        y += 36
-        draw.line([(30, y - 7), (WIDTH - 30, y - 7)], fill=230, width=1)
-    if s_idx == 0:
-        y += 12
-        draw.line([(30, y), (WIDTH - 30, y)], fill=180, width=2)
-        y += 20
-
-# 4. Zitat unten
-print("Lade Zitat...")
-quote, author = get_daily_quote()
-
-def wrap_text(text, font, max_width):
-    words = text.split()
-    lines = []
-    current = ""
-    for word in words:
-        test = current + (" " if current else "") + word
-        if draw.textlength(test, font=font) <= max_width:
-            current = test
-        else:
-            if current:
-                lines.append(current)
-            current = word
-    if current:
-        lines.append(current)
-    return lines
-
-quote_lines = wrap_text(f"„{quote}“", f_quote, WIDTH - 80)
-quote_y = HEIGHT - 120
-draw.line([(30, quote_y - 15), (WIDTH - 30, quote_y - 15)], fill=180, width=1)
-for line in quote_lines[:3]:
-    draw.text((40, quote_y), line, fill=0, font=f_quote)
-    quote_y += 24
-if author:
-    draw.text((40, quote_y + 4), f"— {author}", fill=80, font=f_quote_author)
-
-img.save("dashboard.png", "PNG")
-print("4/4 Fertig: dashboard.png erfolgreich gespeichert!")
