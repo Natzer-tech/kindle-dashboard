@@ -107,12 +107,12 @@ now = datetime.now(TZ)
 img = Image.new("L", (WIDTH, HEIGHT), 255)
 draw = ImageDraw.Draw(img)
 
-# Schwarzer Balken oben (größer)
+# Schwarzer Balken oben (bleibt)
 BAR_HEIGHT = 42
 draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
-# Mehr Platz oben
-TOP = 80
+# Tagesanzeige direkt unter dem Balken (Lücke geschlossen)
+TOP = BAR_HEIGHT + 8
 
 # 1. Header
 date_str = f"{WOCHENTAGE[now.weekday()]}, {now.day}. {MONATE[now.month - 1]} {now.year}"
