@@ -98,20 +98,35 @@ def get_daily_quote():
         author = data.get("authorName", "").strip()
         if quote:
             return quote, author
-    except:
+    except Exception:
         pass
     return "Der beste Weg, die Zukunft vorherzusagen, ist, sie zu gestalten.", "Peter Drucker"
+
+def wrap_text(draw_obj, text, font, max_width):
+    words = text.split()
+    lines = []
+    current = ""
+    for word in words:
+        test = current + (" " if current else "") + word
+        if draw_obj.textlength(test, font=font) <= max_width:
+            current = test
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
 
 # --- Bild erstellen ---
 now = datetime.now(TZ)
 img = Image.new("L", (WIDTH, HEIGHT), 255)
 draw = ImageDraw.Draw(img)
 
-# Schwarzer Balken oben
+# Schwarzer Balken oben (verdeckt den Bereich der Kindle-Statusleiste)
 BAR_HEIGHT = 42
 draw.rectangle([(0, 0), (WIDTH, BAR_HEIGHT)], fill=0)
 
-# Gleicher Abstand oben und unten zur Tagesanzeige
 GAP = 10
 TOP = BAR_HEIGHT + GAP
 
@@ -131,7 +146,7 @@ url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&ho
 try:
     hourly = requests.get(url, timeout=12).json().get("hourly", {})
     times = hourly.get("time", [])
-except:
+except Exception:
     hourly = {}
     times = []
 
@@ -155,7 +170,7 @@ cal = None
 if ICAL_URL:
     try:
         cal = Calendar.from_ical(requests.get(ICAL_URL, timeout=15).text)
-    except:
+    except Exception:
         cal = None
 
 tomorrow = now.date() + timedelta(days=1)
@@ -178,3 +193,24 @@ for s_idx, (title, ev_list) in enumerate(sections):
         while len(summary) > 3 and draw.textlength(summary, font=f_regular) > (WIDTH - 225):
             summary = summary[:-2] + "…"
         draw.text((195, y), summary, fill=0, font=f_regular)
+        y += 36
+        draw.line([(30, y - 7), (WIDTH - 30, y - 7)], fill=230, width=1)
+    if s_idx == 0:
+        y += 12
+        draw.line([(30, y), (WIDTH - 30, y)], fill=180, width=2)
+        y += 20
+
+# 4. Zitat unten
+print("4/4 Lade Zitat und speichere Bild...")
+quote, author = get_daily_quote()
+quote_lines = wrap_text(draw, f"„{quote}“", f_quote, WIDTH - 80)
+quote_y = HEIGHT - 130
+draw.line([(30, quote_y - 15), (WIDTH - 30, quote_y - 15)], fill=180, width=1)
+for line in quote_lines[:3]:
+    draw.text((40, quote_y), line, fill=0, font=f_quote)
+    quote_y += 26
+if author:
+    draw.text((40, quote_y + 4), f"— {author}", fill=80, font=f_quote_author)
+
+img.save("dashboard.png", "PNG")
+print("Fertig: dashboard.png erfolgreich gespeichert!")
